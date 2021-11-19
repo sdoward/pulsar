@@ -30,7 +30,7 @@ class MainActivity : ComponentActivity() {
                         val date = Date.from(Instant.ofEpochMilli(millis))
                         contributions[date] = valueRange.random()
                     }
-                    PlusarChart(
+                    PulsarChart(
                         contributions = contributions,
                         shape = Shape.Squircle,
                         color = Color.Green
