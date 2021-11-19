@@ -12,12 +12,34 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import java.time.Instant
 import java.util.*
 
+const val MILLISECONDS_IN_DAY = 86_400_000
+const val START_OF_2020 = 1577836800000
+
+@Preview
 @Composable
-fun PulsarChart(contributions: Map<Date, Long>,
-                shape: Shape = Shape.Square,
-                color: Color = Color.Red
+fun PulsarChartPreview() {
+    val valueRange = 0..1000L
+    val contributions = mutableMapOf<Date, Long>()
+    (0..364).forEach {
+        val millis = START_OF_2020 * (MILLISECONDS_IN_DAY * it)
+        val date = Date.from(Instant.ofEpochMilli(millis))
+        contributions[date] = valueRange.random()
+    }
+    PulsarChart(
+        contributions = contributions,
+        shape = Shape.Squircle,
+        color = Color.Green
+    )
+}
+
+@Composable
+fun PulsarChart(
+    contributions: Map<Date, Long>,
+    shape: Shape = Shape.Square,
+    color: Color = Color.Red
 ) {
     val boxWH = 32.dp
     val boxSize = Size(boxWH.value, boxWH.value)
