@@ -62,7 +62,7 @@ fun PulsarChart(
             topOffset = Offset(topOffset.x, topOffset.y + boxSize.height + padding.value)
             dayCount++
             if (dayCount % 7 == 0) {
-                topOffset = Offset(((dayCount / 7F) * boxSize.width) + padding.value, 0F)
+                topOffset = Offset(((dayCount / 7F) * boxSize.width) + (dayCount / 7F), 0F)
             }
         }
     }
