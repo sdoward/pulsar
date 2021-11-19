@@ -1,6 +1,7 @@
 package com.sdoward.pulsar
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -41,73 +42,100 @@ fun PulsarChart(
     shape: Shape = Shape.Square,
     color: Color = Color.Red
 ) {
-    val boxWH = 32.dp
-    val boxSize = Size(boxWH.value, boxWH.value)
-    val padding = 2.dp
     val maxValue = contributions.values.maxOf { it }
-    Canvas(
+    val alphas = mutableListOf<Float>()
+    contributions.keys.sortedBy { it.toInstant().epochSecond }.forEach { date ->
+        alphas.add((contributions.getValue(date).toFloat() / maxValue))
+    }
+    PulsarCore(
         modifier = Modifier
             .fillMaxSize()
-            .padding(8.dp)
-    ) {
-        var topOffset = Offset(0F, 0F)
-        var dayCount = 0
-        contributions.keys.sortedBy { it.toInstant().epochSecond }.forEach { date ->
-            val alpha = ((contributions.getValue(date).toFloat() / maxValue))
+            .padding(8.dp),
+        color = color,
+        rowCount = 7,
+        alphas = alphas,
+        shape = shape
+    )
+}
+
+@Preview
+@Composable
+fun PulsarCorePreview() {
+    //   val alphas = (0..364).map { 1F }
+    val alphas = listOf(
+        0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,
+        0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,
+        0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,
+        0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,
+        0.1, 0.2, 0.3, 0.4,
+    ).map { it.toFloat() }
+    PulsarCore(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(9.dp),
+        color = Color.Red,
+        rowCount = 7,
+        alphas = alphas
+    )
+}
+
+@Composable
+fun PulsarCore(
+    modifier: Modifier,
+    color: Color,
+    shape: Shape = Shape.Square,
+    rowCount: Int,
+    alphas: List<Float>
+) {
+    val boxWH = 32.dp
+    val boxSize = Size(boxWH.value, boxWH.value)
+    val padding = 4.dp
+    Canvas(modifier = modifier) {
+        var offset = Offset(0F, 0F)
+        var currentRow = 0
+        var currentColum = 0
+        alphas.forEach { alpha ->
             when (shape) {
-                Shape.Square -> drawSquare(topOffset, alpha, boxSize, color)
-                Shape.Circle -> drawCircle(topOffset, alpha, boxSize, color)
-                Shape.Squircle -> drawSquircle(topOffset, alpha, boxSize, color)
+                Shape.Circle -> drawCirclePulse(color, offset, boxSize, alpha)
+                Shape.Square -> drawSquarePulse(color, offset, boxSize, alpha)
+                Shape.Squircle -> drawSquirclePulse(color, offset, boxSize, alpha)
             }
-            topOffset = Offset(topOffset.x, topOffset.y + boxSize.height + padding.value)
-            dayCount++
-            if (dayCount % 7 == 0) {
-                topOffset = Offset(((dayCount / 7F) * boxSize.width) + (dayCount / 7F), 0F)
+            currentRow++
+            offset += Offset(0F, boxSize.height + padding.value)
+            if (currentRow % rowCount == 0) {
+                currentColum++
+                currentRow = 0
+                offset = Offset((offset.x + boxSize.width) + padding.value, 0F)
             }
         }
     }
 }
 
-private fun DrawScope.drawCircle(
-    topOffset: Offset,
-    alpha: Float,
-    boxSize: Size,
-    color: Color
-) {
-    drawCircle(
-        color = color,
-        alpha = alpha,
-        center = topOffset,
-        radius = boxSize.height / 2F
-    )
-}
-
-private fun DrawScope.drawSquare(
-    topOffset: Offset,
-    alpha: Float,
-    boxSize: Size,
-    color: Color
-) {
+private fun DrawScope.drawSquarePulse(color: Color, offset: Offset, size: Size, alpha: Float) {
     drawRect(
         color = color,
-        topLeft = topOffset,
+        topLeft = offset,
         alpha = alpha,
-        size = boxSize
+        size = size
     )
 }
 
-private fun DrawScope.drawSquircle(
-    topOffset: Offset,
-    alpha: Float,
-    boxSize: Size,
-    color: Color
-) {
+private fun DrawScope.drawSquirclePulse(color: Color, offset: Offset, size: Size, alpha: Float) {
     drawRoundRect(
         color = color,
-        topLeft = topOffset,
+        topLeft = offset,
         alpha = alpha,
-        size = boxSize,
-        cornerRadius = CornerRadius(boxSize.width / 8F, boxSize.height / 8F)
+        size = size,
+        cornerRadius = CornerRadius(size.width / 8F, size.height / 8F)
+    )
+}
+
+private fun DrawScope.drawCirclePulse(color: Color, offset: Offset, size: Size, alpha: Float) {
+    drawCircle(
+        color = color,
+        center = offset + Offset(size.width / 2F, size.height / 2F),
+        alpha = alpha,
+        radius = size.height / 2F
     )
 }
 
