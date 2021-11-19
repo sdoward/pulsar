@@ -1,7 +1,6 @@
 package com.sdoward.pulsar
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -45,7 +44,7 @@ fun PulsarChart(
     val maxValue = contributions.values.maxOf { it }
     val alphas = mutableListOf<Float>()
     contributions.keys.sortedBy { it.toInstant().epochSecond }.forEach { date ->
-        alphas.add((contributions.getValue(date).toFloat() / maxValue))
+        alphas.add((contributions.getOrDefault(date, 0).toFloat() / maxValue))
     }
     PulsarCore(
         modifier = Modifier
@@ -75,6 +74,7 @@ fun PulsarCorePreview() {
             .padding(9.dp),
         color = Color.Red,
         rowCount = 7,
+        rowStart = 2,
         alphas = alphas
     )
 }
@@ -84,16 +84,20 @@ fun PulsarCore(
     modifier: Modifier,
     color: Color,
     shape: Shape = Shape.Square,
-    rowCount: Int,
+    rowCount: Int = 7,
+    rowStart: Int = 0,
     alphas: List<Float>
 ) {
+    if (rowStart >= rowCount) {
+        throw IllegalStateException("RowStart cannot be higher than RowCount. RowStart: $rowStart RowCount: $rowCount")
+    }
     val boxWH = 32.dp
     val boxSize = Size(boxWH.value, boxWH.value)
     val padding = 4.dp
     Canvas(modifier = modifier) {
-        var offset = Offset(0F, 0F)
-        var currentRow = 0
-        var currentColum = 0
+        var currentRow = rowStart
+        var currentColumn = 0
+        var offset = Offset(0F, (currentRow * boxSize.height) + (currentRow * padding.value))
         alphas.forEach { alpha ->
             when (shape) {
                 Shape.Circle -> drawCirclePulse(color, offset, boxSize, alpha)
@@ -103,7 +107,7 @@ fun PulsarCore(
             currentRow++
             offset += Offset(0F, boxSize.height + padding.value)
             if (currentRow % rowCount == 0) {
-                currentColum++
+                currentColumn++
                 currentRow = 0
                 offset = Offset((offset.x + boxSize.width) + padding.value, 0F)
             }
