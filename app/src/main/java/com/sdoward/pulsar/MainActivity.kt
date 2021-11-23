@@ -49,22 +49,37 @@ class MainActivity : ComponentActivity() {
                     val color = remember {
                         mutableStateOf(Color.Blue)
                     }
+                    val padding = remember {
+                        mutableStateOf(4F)
+                    }
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                     ) {
                         ShapeControl(shapeExpanded, shape)
                         ColorControl(colorExpanded, color)
+                        PaddingControl(padding = padding)
                         PulsarChart(
                             contributions = contributions,
                             shape = shape.value,
-                            color = color.value
+                            color = color.value,
+                            pulsePadding = padding.value.dp
                         )
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun ColumnScope.PaddingControl(padding: MutableState<Float>) {
+    Text(text = "Padding: ${padding.value}")
+    Slider(value = padding.value,
+        valueRange = 0F..20f,
+        onValueChange = {
+            padding.value = it
+        })
 }
 
 @Composable

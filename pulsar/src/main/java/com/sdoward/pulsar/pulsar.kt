@@ -10,6 +10,7 @@ import androidx.compose.ui.geometry.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.util.*
@@ -40,7 +41,8 @@ fun PulsarChartPreview() {
 fun PulsarChart(
     contributions: Map<Date, Long>,
     shape: Shape = Shape.Square,
-    color: Color = Color.Red
+    color: Color = Color.Red,
+    pulsePadding: Dp = 4.dp
 ) {
     val earliestDate = contributions.keys.minOf { it }
     val dayOfWeek = Calendar.getInstance().apply {
@@ -59,7 +61,8 @@ fun PulsarChart(
         rowCount = 7,
         rowStart = dayOfWeek,
         alphas = alphas,
-        shape = shape
+        shape = shape,
+        pulsePadding = pulsePadding
     )
 }
 
@@ -92,21 +95,23 @@ fun PulsarCore(
     shape: Shape = Shape.Squircle,
     rowCount: Int = 7,
     rowStart: Int = 0,
-    alphas: List<Float>
+    alphas: List<Float>,
+    pulsePadding: Dp = 4.dp
 ) {
     if (rowStart >= rowCount) {
         throw IllegalStateException("RowStart cannot be higher than RowCount. RowStart: $rowStart RowCount: $rowCount")
     }
+
     val columnCount = ceil(alphas.size.toFloat() / rowCount.toFloat())
-    val padding = 4.dp
     Canvas(modifier = modifier) {
-        val columnWidth = (size.width / columnCount) - padding.value
+        val columnWidth = (size.width / columnCount) - pulsePadding.value
         val boxSize = Size(columnWidth, columnWidth)
         var currentRow = rowStart
         var currentColumn = 0
-        val y = (currentRow * boxSize.height) + (currentRow * padding.value) + (padding.value / 2)
+        val y =
+            (currentRow * boxSize.height) + (currentRow * pulsePadding.value) + (pulsePadding.value / 2)
         var offset = Offset(
-            padding.value / 2,
+            pulsePadding.value / 2,
             y
         )
         alphas.forEach { alpha ->
@@ -116,11 +121,12 @@ fun PulsarCore(
                 Shape.Squircle -> drawSquirclePulse(color, offset, boxSize, alpha)
             }
             currentRow++
-            offset += Offset(0F, boxSize.height + padding.value)
+            offset += Offset(0F, boxSize.height + pulsePadding.value)
             if (currentRow % rowCount == 0) {
                 currentColumn++
                 currentRow = 0
-                offset = Offset((offset.x + boxSize.width) + padding.value, padding.value / 2)
+                offset =
+                    Offset((offset.x + boxSize.width) + pulsePadding.value, pulsePadding.value / 2)
             }
         }
     }
