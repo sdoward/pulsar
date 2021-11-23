@@ -1,5 +1,6 @@
 package com.sdoward.pulsar
 
+import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -12,6 +13,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.util.*
+import kotlin.math.ceil
+import kotlin.math.nextUp
 
 const val MILLISECONDS_IN_DAY = 86_400_000
 const val START_OF_2020 = 1577836800000
@@ -28,7 +31,7 @@ fun PulsarChartPreview() {
     }
     PulsarChart(
         contributions = contributions,
-        shape = Shape.Circle,
+        shape = Shape.Square,
         color = Color.Green
     )
 }
@@ -77,7 +80,7 @@ fun PulsarCorePreview() {
             .padding(9.dp),
         color = Color.Red,
         rowCount = 7,
-        rowStart = 2,
+        rowStart = 0,
         alphas = alphas
     )
 }
@@ -86,7 +89,7 @@ fun PulsarCorePreview() {
 fun PulsarCore(
     modifier: Modifier,
     color: Color,
-    shape: Shape = Shape.Circle,
+    shape: Shape = Shape.Squircle,
     rowCount: Int = 7,
     rowStart: Int = 0,
     alphas: List<Float>
@@ -94,13 +97,18 @@ fun PulsarCore(
     if (rowStart >= rowCount) {
         throw IllegalStateException("RowStart cannot be higher than RowCount. RowStart: $rowStart RowCount: $rowCount")
     }
-    val boxWH = 32.dp
-    val boxSize = Size(boxWH.value, boxWH.value)
+    val columnCount = ceil(alphas.size.toFloat() / rowCount.toFloat())
     val padding = 4.dp
     Canvas(modifier = modifier) {
+        val columnWidth = (size.width / columnCount) - padding.value
+        val boxSize = Size(columnWidth, columnWidth)
         var currentRow = rowStart
         var currentColumn = 0
-        var offset = Offset(0F, (currentRow * boxSize.height) + (currentRow * padding.value))
+        val y = (currentRow * boxSize.height) + (currentRow * padding.value) + (padding.value / 2)
+        var offset = Offset(
+            padding.value / 2,
+            y
+        )
         alphas.forEach { alpha ->
             when (shape) {
                 Shape.Circle -> drawCirclePulse(color, offset, boxSize, alpha)
@@ -112,7 +120,7 @@ fun PulsarCore(
             if (currentRow % rowCount == 0) {
                 currentColumn++
                 currentRow = 0
-                offset = Offset((offset.x + boxSize.width) + padding.value, 0F)
+                offset = Offset((offset.x + boxSize.width) + padding.value, padding.value / 2)
             }
         }
     }
