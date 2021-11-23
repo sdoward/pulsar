@@ -5,9 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.tooling.preview.Preview
@@ -30,7 +28,7 @@ fun PulsarChartPreview() {
     }
     PulsarChart(
         contributions = contributions,
-        shape = Shape.Squircle,
+        shape = Shape.Circle,
         color = Color.Green
     )
 }
@@ -41,6 +39,10 @@ fun PulsarChart(
     shape: Shape = Shape.Square,
     color: Color = Color.Red
 ) {
+    val earliestDate = contributions.keys.minOf { it }
+    val dayOfWeek = Calendar.getInstance().apply {
+        time = earliestDate
+    }.get(Calendar.DAY_OF_WEEK)
     val maxValue = contributions.values.maxOf { it }
     val alphas = mutableListOf<Float>()
     contributions.keys.sortedBy { it.toInstant().epochSecond }.forEach { date ->
@@ -52,6 +54,7 @@ fun PulsarChart(
             .padding(8.dp),
         color = color,
         rowCount = 7,
+        rowStart = dayOfWeek,
         alphas = alphas,
         shape = shape
     )
@@ -83,7 +86,7 @@ fun PulsarCorePreview() {
 fun PulsarCore(
     modifier: Modifier,
     color: Color,
-    shape: Shape = Shape.Square,
+    shape: Shape = Shape.Circle,
     rowCount: Int = 7,
     rowStart: Int = 0,
     alphas: List<Float>
@@ -137,7 +140,7 @@ private fun DrawScope.drawSquirclePulse(color: Color, offset: Offset, size: Size
 private fun DrawScope.drawCirclePulse(color: Color, offset: Offset, size: Size, alpha: Float) {
     drawCircle(
         color = color,
-        center = offset + Offset(size.width / 2F, size.height / 2F),
+        center = offset + size.center,
         alpha = alpha,
         radius = size.height / 2F
     )
