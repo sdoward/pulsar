@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
@@ -13,13 +12,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.sdoward.pulsar.ui.theme.PlusarTheme
 import java.time.Instant
 import java.util.*
-import kotlin.math.exp
-
 
 const val MILLISECONDS_IN_DAY = 86_400_000
 const val START_OF_2020 = 1577836800000
@@ -27,20 +23,23 @@ const val START_OF_2020 = 1577836800000
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val valueRange = 0..1000L
+        val contributions = mutableMapOf<Date, Long>()
+        (0..364).forEach {
+            val millis = START_OF_2020 * (MILLISECONDS_IN_DAY * it)
+            val date = Date.from(Instant.ofEpochMilli(millis))
+            contributions[date] = valueRange.random()
+        }
         setContent {
             PlusarTheme {
                 Surface(color = MaterialTheme.colors.background) {
-                    val valueRange = 0..1000L
-                    val contributions = remember { mutableMapOf<Date, Long>() }
-                    (0..364).forEach {
-                        val millis = START_OF_2020 * (MILLISECONDS_IN_DAY * it)
-                        val date = Date.from(Instant.ofEpochMilli(millis))
-                        contributions[date] = valueRange.random()
-                    }
                     val shapeExpanded = remember {
                         mutableStateOf(false)
                     }
                     val colorExpanded = remember {
+                        mutableStateOf(false)
+                    }
+                    val styleExpanded = remember {
                         mutableStateOf(false)
                     }
                     val shape = remember {
@@ -52,17 +51,23 @@ class MainActivity : ComponentActivity() {
                     val padding = remember {
                         mutableStateOf(4F)
                     }
+                    val style = remember {
+                        mutableStateOf(Style.ALPHA)
+                    }
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                     ) {
                         ShapeControl(shapeExpanded, shape)
                         ColorControl(colorExpanded, color)
-                        PaddingControl(padding = padding)
+                        NumberControl(padding = padding)
+                        StyleControl(styleExpanded, style)
                         PulsarChart(
+                            modifier = Modifier.fillMaxSize(),
                             contributions = contributions,
                             shape = shape.value,
                             color = color.value,
+                            style = style.value,
                             pulsePadding = padding.value.dp
                         )
                     }
@@ -73,13 +78,34 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun ColumnScope.PaddingControl(padding: MutableState<Float>) {
+private fun ColumnScope.NumberControl(padding: MutableState<Float>) {
     Text(text = "Padding: ${padding.value}")
     Slider(value = padding.value,
         valueRange = 0F..20f,
         onValueChange = {
             padding.value = it
         })
+}
+
+@Composable
+private fun StyleControl(expanded: MutableState<Boolean>, style: MutableState<Style>) {
+    Box {
+        Button(
+            modifier = Modifier.padding(16.dp),
+            onClick = { expanded.value = true }) {
+            Text(text = style.value.name)
+        }
+        DropdownMenu(expanded = expanded.value, onDismissRequest = {}) {
+            Style.values().forEach {
+                DropdownMenuItem(onClick = {
+                    expanded.value = false
+                    style.value = it
+                }) {
+                    Text(text = it.name)
+                }
+            }
+        }
+    }
 }
 
 @Composable
