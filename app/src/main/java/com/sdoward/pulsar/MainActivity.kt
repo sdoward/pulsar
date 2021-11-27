@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import com.sdoward.pulsar.ui.theme.PlusarTheme
 import java.time.Instant
 import java.util.*
+import kotlin.math.roundToInt
 
 const val MILLISECONDS_IN_DAY = 86_400_000
 const val START_OF_2020 = 1577836800000
@@ -24,11 +25,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val valueRange = 0..1000L
-        val contributions = mutableMapOf<Date, Long>()
-        (0..364).forEach {
-            val millis = START_OF_2020 * (MILLISECONDS_IN_DAY * it)
-            val date = Date.from(Instant.ofEpochMilli(millis))
-            contributions[date] = valueRange.random()
+        val values = (0..364).map {
+            valueRange.random().toFloat() / 1000F
         }
         setContent {
             PlusarTheme {
@@ -54,20 +52,34 @@ class MainActivity : ComponentActivity() {
                     val style = remember {
                         mutableStateOf(Style.ALPHA)
                     }
+                    val pulseSize = remember {
+                        mutableStateOf(364F)
+                    }
+                    val rowCount = remember {
+                        mutableStateOf(7F)
+                    }
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                     ) {
                         ShapeControl(shapeExpanded, shape)
                         ColorControl(colorExpanded, color)
-                        NumberControl(padding = padding)
+                        NumberControl(
+                            label = "Pulse Count",
+                            value = pulseSize,
+                            min = 1F,
+                            max = 364F
+                        )
+                        NumberControl(label = "Padding", value = padding)
+                        NumberControl(label = "Row Count", value = rowCount, min = 1F, max = 30F)
                         StyleControl(styleExpanded, style)
-                        PulsarChart(
+                        PulsarCore(
                             modifier = Modifier.fillMaxSize(),
-                            contributions = contributions,
+                            values = values.take(pulseSize.value.roundToInt()),
                             shape = shape.value,
                             color = color.value,
                             style = style.value,
+                            rowCount = rowCount.value.roundToInt(),
                             pulsePadding = padding.value.dp
                         )
                     }
@@ -78,12 +90,19 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun ColumnScope.NumberControl(padding: MutableState<Float>) {
-    Text(text = "Padding: ${padding.value}")
-    Slider(value = padding.value,
-        valueRange = 0F..20f,
+private fun ColumnScope.NumberControl(
+    label: String,
+    value: MutableState<Float>,
+    min: Float = 0F,
+    max: Float = 20F
+) {
+    Text(text = "$label: ${value.value.roundToInt()}")
+    Slider(
+        value = value.value,
+        valueRange = min..max,
+        steps = max.roundToInt(),
         onValueChange = {
-            padding.value = it
+            value.value = it
         })
 }
 
