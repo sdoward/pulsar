@@ -1,21 +1,24 @@
 package com.sdoward.pulsar
 
-import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.inset
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import java.time.Instant
 import java.util.*
 import kotlin.math.ceil
-import kotlin.math.nextUp
+import kotlin.math.max
+import kotlin.math.min
 
 const val MILLISECONDS_IN_DAY = 86_400_000
 const val START_OF_2020 = 1577836800000
@@ -31,14 +34,19 @@ fun PulsarChartPreview() {
         contributions[date] = valueRange.random()
     }
     PulsarChart(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(8.dp),
         contributions = contributions,
         shape = Shape.Square,
-        color = Color.Green
+        color = Color.Green,
+        pulsePadding = 0.dp
     )
 }
 
 @Composable
 fun PulsarChart(
+    modifier: Modifier = Modifier,
     contributions: Map<Date, Long>,
     shape: Shape = Shape.Square,
     color: Color = Color.Red,
@@ -54,9 +62,7 @@ fun PulsarChart(
         alphas.add((contributions.getOrDefault(date, 0).toFloat() / maxValue))
     }
     PulsarCore(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(8.dp),
+        modifier = modifier,
         color = color,
         rowCount = 7,
         rowStart = dayOfWeek,
@@ -101,11 +107,12 @@ fun PulsarCore(
     if (rowStart >= rowCount) {
         throw IllegalStateException("RowStart cannot be higher than RowCount. RowStart: $rowStart RowCount: $rowCount")
     }
-
     val columnCount = ceil(alphas.size.toFloat() / rowCount.toFloat())
     Canvas(modifier = modifier) {
         val columnWidth = (size.width / columnCount) - pulsePadding.value
-        val boxSize = Size(columnWidth, columnWidth)
+        val rowWidth = (size.height / rowCount) - pulsePadding.value
+        val pulseDimension = min(columnWidth, rowWidth)
+        val boxSize = Size(pulseDimension, pulseDimension)
         var currentRow = rowStart
         var currentColumn = 0
         val y =
