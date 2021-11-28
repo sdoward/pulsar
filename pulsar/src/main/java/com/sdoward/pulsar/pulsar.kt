@@ -1,5 +1,6 @@
 package com.sdoward.pulsar
 
+import androidx.annotation.FloatRange
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -36,8 +37,31 @@ internal fun PulsarChartPreview() {
         contributions = contributions,
         shape = Shape.Circle,
         color = Color.Green,
-        style = Style.ALPHA_SIZE,
+        style = Style.AlphaSize(Style.Alpha(max = 0.6F), Style.Size(overShoot = 1.8F)),
         pulsePadding = 0.dp
+    )
+}
+
+@Preview
+@Composable
+internal fun PulsarCorePreview() {
+    val alphas = listOf(
+        0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,
+        0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,
+        0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,
+        0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,
+        0.1, 0.2, 0.3, 0.4,
+    ).map { it.toFloat() }
+    PulsarCore(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(9.dp),
+        color = Color.Red,
+        shape = Shape.Circle,
+        style = Style.AlphaSize(),
+        rowCount = 7,
+        rowStart = 0,
+        values = alphas
     )
 }
 
@@ -47,7 +71,7 @@ fun PulsarChart(
     contributions: Map<Date, Long>,
     shape: Shape = Shape.Square,
     color: Color = Color.Red,
-    style: Style = Style.ALPHA,
+    style: Style = Style.Alpha(),
     pulsePadding: Dp = 4.dp
 ) {
     val earliestDate = contributions.keys.minOf { it }
@@ -71,29 +95,6 @@ fun PulsarChart(
     )
 }
 
-@Preview
-@Composable
-internal fun PulsarCorePreview() {
-    val alphas = listOf(
-        0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,
-        0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,
-        0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,
-        0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,
-        0.1, 0.2, 0.3, 0.4,
-    ).map { it.toFloat() }
-    PulsarCore(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(9.dp),
-        color = Color.Red,
-        shape = Shape.Circle,
-        style = Style.SIZE,
-        rowCount = 7,
-        rowStart = 0,
-        values = alphas
-    )
-}
-
 @Composable
 fun PulsarCore(
     modifier: Modifier,
@@ -101,7 +102,7 @@ fun PulsarCore(
     shape: Shape = Shape.Squircle,
     rowCount: Int = 7,
     rowStart: Int = 0,
-    style: Style = Style.ALPHA,
+    style: Style = Style.Alpha(),
     values: List<Float>,
     pulsePadding: Dp = 4.dp
 ) {
@@ -124,9 +125,9 @@ fun PulsarCore(
         )
         values.forEach { value ->
             val alpha = when (style) {
-                Style.ALPHA -> value
-                Style.SIZE -> 1F
-                Style.ALPHA_SIZE -> value
+                is Style.Alpha -> value * (style.max - style.min) + style.min
+                is Style.Size -> 1F
+                is Style.AlphaSize -> value * (style.alpha.max - style.alpha.min) + style.alpha.min
             }
             when (shape) {
                 Shape.Circle -> drawCirclePulse(color, offset, boxSize, style, alpha, value)
@@ -154,9 +155,9 @@ private fun DrawScope.drawSquarePulse(
     pulseValue: Float,
 ) {
     val rectifiedSize = when (style) {
-        Style.ALPHA -> size
-        Style.SIZE -> size * pulseValue
-        Style.ALPHA_SIZE -> size * pulseValue
+        is Style.Alpha -> size
+        is Style.Size -> (size * pulseValue) * style.overShoot
+        is Style.AlphaSize -> (size * pulseValue) * style.size.overShoot
     }
     val sizeDelta = (size.height - rectifiedSize.height) / 2
     drawRect(
@@ -176,9 +177,9 @@ private fun DrawScope.drawSquirclePulse(
     pulseValue: Float
 ) {
     val rectifiedSize = when (style) {
-        Style.ALPHA -> size
-        Style.SIZE -> size * pulseValue
-        Style.ALPHA_SIZE -> size * pulseValue
+        is Style.Alpha -> size
+        is Style.Size -> (size * pulseValue) * style.overShoot
+        is Style.AlphaSize -> (size * pulseValue) * style.size.overShoot
     }
     val sizeDelta = (size.height - rectifiedSize.height) / 2
     drawRoundRect(
@@ -199,9 +200,9 @@ private fun DrawScope.drawCirclePulse(
     pulseValue: Float
 ) {
     val radius = when (style) {
-        Style.ALPHA -> size.height / 2F
-        Style.SIZE -> (size.height / 2F) * pulseValue
-        Style.ALPHA_SIZE -> (size.height / 2F) * pulseValue
+        is Style.Alpha -> size.height / 2F
+        is Style.Size -> ((size.height / 2F) * pulseValue) * style.overShoot
+        is Style.AlphaSize -> ((size.height / 2F) * pulseValue) * style.size.overShoot
     }
     drawCircle(
         color = color,
@@ -217,8 +218,8 @@ enum class Shape {
     Squircle
 }
 
-enum class Style {
-    ALPHA,
-    SIZE,
-    ALPHA_SIZE
+sealed class Style {
+    data class Alpha(val min: Float = 0F, val max: Float = 1F) : Style()
+    data class Size(val overShoot: Float = 1F) : Style()
+    data class AlphaSize(val alpha: Alpha = Alpha(), val size: Size = Size()) : Style()
 }

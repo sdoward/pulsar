@@ -10,12 +10,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.sdoward.pulsar.ui.theme.PlusarTheme
-import java.time.Instant
-import java.util.*
 import kotlin.math.roundToInt
 
 const val MILLISECONDS_IN_DAY = 86_400_000
@@ -41,7 +40,7 @@ class MainActivity : ComponentActivity() {
                         mutableStateOf(false)
                     }
                     val shape = remember {
-                        mutableStateOf(Shape.Squircle)
+                        mutableStateOf(Shape.Circle)
                     }
                     val color = remember {
                         mutableStateOf(Color.Blue)
@@ -50,10 +49,10 @@ class MainActivity : ComponentActivity() {
                         mutableStateOf(4F)
                     }
                     val style = remember {
-                        mutableStateOf(Style.ALPHA)
+                        mutableStateOf(StyleState())
                     }
                     val pulseSize = remember {
-                        mutableStateOf(364F)
+                        mutableStateOf(90F)
                     }
                     val rowCount = remember {
                         mutableStateOf(7F)
@@ -61,24 +60,42 @@ class MainActivity : ComponentActivity() {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .padding(8.dp)
                     ) {
-                        ShapeControl(shapeExpanded, shape)
-                        ColorControl(colorExpanded, color)
                         NumberControl(
                             label = "Pulse Count",
-                            value = pulseSize,
+                            value = pulseSize.value,
                             min = 1F,
                             max = 364F
+                        ) {
+                            pulseSize.value = it
+                        }
+                        NumberControl(
+                            label = "Row Count",
+                            value = rowCount.value,
+                            min = 1F,
+                            max = 30F
+                        ) {
+                            rowCount.value = it
+                        }
+                        NumberControl(label = "Padding", value = padding.value) {
+                            padding.value = it
+                        }
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        ShapeControl(shapeExpanded, shape)
+                        ColorControl(colorExpanded, color)
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        StyleControl(
+                            styleExpanded,
+                            style
                         )
-                        NumberControl(label = "Padding", value = padding)
-                        NumberControl(label = "Row Count", value = rowCount, min = 1F, max = 30F)
-                        StyleControl(styleExpanded, style)
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
                         PulsarCore(
                             modifier = Modifier.fillMaxSize(),
                             values = values.take(pulseSize.value.roundToInt()),
                             shape = shape.value,
                             color = color.value,
-                            style = style.value,
+                            style = style.value.getSelected(),
                             rowCount = rowCount.value.roundToInt(),
                             pulsePadding = padding.value.dp
                         )
@@ -89,40 +106,116 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable
-private fun ColumnScope.NumberControl(
-    label: String,
-    value: MutableState<Float>,
-    min: Float = 0F,
-    max: Float = 20F
+data class StyleState(
+    val alpha: Style.Alpha = Style.Alpha(),
+    val size: Style.Size = Style.Size(),
+    val selectedId: Int = 0
 ) {
-    Text(text = "$label: ${value.value.roundToInt()}")
-    Slider(
-        value = value.value,
-        valueRange = min..max,
-        steps = max.roundToInt(),
-        onValueChange = {
-            value.value = it
-        })
+    fun getSelected() = when (selectedId) {
+        0 -> component1()
+        1 -> component2()
+        2 -> Style.AlphaSize(component1(), component2())
+        else -> error("Unknown value")
+    }
 }
 
 @Composable
-private fun StyleControl(expanded: MutableState<Boolean>, style: MutableState<Style>) {
-    Box {
-        Button(
-            modifier = Modifier.padding(16.dp),
-            onClick = { expanded.value = true }) {
-            Text(text = style.value.name)
+private fun OvershootControl(
+    value: MutableState<StyleState>
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.fillMaxWidth(0.25F)) {
+            Text(text = "Overshoot", style = MaterialTheme.typography.subtitle1)
+            Text(text = "${value.value.size.overShoot}")
         }
-        DropdownMenu(expanded = expanded.value, onDismissRequest = {}) {
-            Style.values().forEach {
-                DropdownMenuItem(onClick = {
-                    expanded.value = false
-                    style.value = it
-                }) {
-                    Text(text = it.name)
+        Slider(
+            value = value.value.size.overShoot,
+            valueRange = 1.0F..3.0F,
+            steps = 10,
+            onValueChange = {
+                val size = Style.Size(overShoot = it)
+                value.value = value.value.copy(size = size)
+            })
+    }
+}
+
+@Composable
+private fun NumberControl(
+    label: String,
+    value: Float,
+    min: Float = 0F,
+    max: Float = 20F,
+    steps: Int = max.roundToInt(),
+    listener: (Float) -> Unit
+) {
+    val thisValue = remember {
+        mutableStateOf(value)
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.fillMaxWidth(0.25F)) {
+            Text(text = "$label", style = MaterialTheme.typography.subtitle1)
+            Text(text = "${thisValue.value}", maxLines = 1)
+        }
+        Slider(
+            value = thisValue.value,
+            valueRange = min..max,
+            steps = steps,
+            onValueChange = {
+                thisValue.value = it
+                listener(it)
+            })
+    }
+}
+
+@Composable
+private fun StyleControl(
+    expanded: MutableState<Boolean>,
+    style: MutableState<StyleState>
+) {
+    Column {
+        Box {
+            Button(
+                modifier = Modifier.padding(16.dp),
+                onClick = { expanded.value = true }) {
+                Text(text = style.value.getSelected()::class.java.simpleName)
+            }
+            DropdownMenu(expanded = expanded.value, onDismissRequest = {}) {
+                listOf("Alpha", "Size", "AlphaSize").forEachIndexed { index, name ->
+                    DropdownMenuItem(onClick = {
+                        expanded.value = false
+                        style.value = style.value.copy(selectedId = index)
+                    }) {
+                        Text(text = name)
+                    }
                 }
             }
+        }
+        if (style.value.getSelected() is Style.Alpha || style.value.getSelected() is Style.AlphaSize) {
+            NumberControl(
+                label = "Alpha Max",
+                value = style.value.alpha.max,
+                min = style.value.alpha.min,
+                max = 1F,
+                steps = 20
+            ) {
+                style.value = style.value.copy(alpha = style.value.alpha.copy(max = it))
+            }
+            NumberControl(
+                label = "Alpha Min",
+                value = style.value.alpha.min,
+                min = 0F,
+                max = style.value.alpha.max,
+                steps = style.value.alpha.max.roundToInt() * 20
+            ) {
+                style.value = style.value.copy(alpha = style.value.alpha.copy(min = it))
+            }
+        }
+        if (style.value.getSelected() is Style.Size || style.value.getSelected() is Style.AlphaSize) {
+            OvershootControl(value = style)
         }
     }
 }
@@ -163,7 +256,7 @@ private fun ColorControl(
                 backgroundColor = color.value
             ),
             onClick = { expanded.value = true }) {
-            Text(text = "Color")
+            Text(text = "Color", color = Color.White)
         }
         DropdownMenu(expanded = expanded.value, onDismissRequest = {}) {
             listOf(
